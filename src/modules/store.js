@@ -16,10 +16,11 @@ export const useSettingsStore = defineStore('settings', {
     },
 
   }),
-  getters:
-  {
+  getters: {
+
     getUserLanguage: (state) => state.localization.language ?? undefined,
     getUserTimezone: (state) => state.localization.timezone ?? undefined,
+
   },
   actions: {
 
@@ -30,6 +31,7 @@ export const useSettingsStore = defineStore('settings', {
       try {
 
         const data = (await axios.get(generateUrl('apps/aktenschrank/settings'))).data
+        debugger
         this.config.timezone = data.timezone
         this.config.language = data.language
 

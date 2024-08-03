@@ -7,6 +7,7 @@ module.exports = {
 		'vue/first-attribute-linebreak': 'off',
 		'vue/multiline-html-element-content-newline': 'off',
 		'vue/html-indent': 'off',
-		'indent': 'off'
+		'indent': 'off',
+		'no-debugger': 'off',
 	},
 }

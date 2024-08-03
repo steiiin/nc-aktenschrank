@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>aktenschrank</id>
+	<name>Aktenschrank</name>
+	<summary>Organize scans or other files like in a filing cabinet</summary>
+	<description>Organize scans or other files like in a filing cabinet</description>
+	<version>1.0.0</version>
+	<licence>agpl</licence>
+	<author mail="dev@steiiin.de" homepage="https://github.com/steiiin">Gordian Steinmann</author>
+	<namespace>Aktenschrank</namespace>
+	<category>files</category>
+	<category>office</category>
+	<category>organization</category>
+	<bugs>https://github.com/steiiin/nc-aktenschrank/issues</bugs>
+	<dependencies>
+		<nextcloud min-version="29" max-version="30"/>
+	</dependencies>
+	<navigations>
+		<navigation>
+			<id>aktenschrank</id>
+			<name>Aktenschrank</name>
+			<route>aktenschrank.page.index</route>
+			<icon>app.svg</icon>
+			<type>link</type>
+		</navigation>
+	</navigations>
+</info>

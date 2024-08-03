@@ -32,7 +32,10 @@ class SettingsController extends Controller {
 
 	#[NoAdminRequired]
 	public function getSettings(): JSONResponse {
-		return ApiResult::json(true);
+
+        $localization = $this->apiService->getLocalization();
+		return ApiResult::json(true, $localization);
+        
 	}
 
 	#endregion

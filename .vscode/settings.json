@@ -5,7 +5,38 @@
         "**/.hg": true,
         "**/CVS": true,
         "**/.DS_Store": true,
-        "**/Thumbs.db": true
+        "**/Thumbs.db": true,
+        ".php-cs-fixer.dist.php": true,
+        "node_modules": true,
+        "js": true,
+        "tests/phpunit.xml": true,
+        "vendor-bin": true,
+        "templates": true,
+        "tests": true,
+        ".eslintrc.js": true,
+        "composer.json": true,
+        "LICENSE": true,
+        "package-lock.json": true,
+        "psalm.xml": true,
+        "README.md": true,
+        "stylelint.config.js": true,
+        "webpack.js": true
     },
-    "hide-files.files": []
+    "hide-files.files": [
+        ".php-cs-fixer.dist.php",
+        "node_modules",
+        "js",
+        "tests/phpunit.xml",
+        "vendor-bin",
+        "templates",
+        "tests",
+        ".eslintrc.js",
+        "composer.json",
+        "LICENSE",
+        "package-lock.json",
+        "psalm.xml",
+        "README.md",
+        "stylelint.config.js",
+        "webpack.js"
+    ]
 }

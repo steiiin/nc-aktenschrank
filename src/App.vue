@@ -98,6 +98,12 @@ export default {
     }
   },
 
+  async mounted() {
+
+    await this.loadAppSettings()
+
+  },
+
   methods:
   {
 

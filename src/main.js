@@ -12,7 +12,7 @@ Vue.mixin({ methods: { t, n } })
 
 /* App */
 export default new Vue({
-	el: '#aktenschrank',
+	el: '#content',
 	router,
 	pinia,
 	render: h => h(App),

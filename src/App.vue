@@ -2,7 +2,7 @@
   <NcContent app-name="aktenschrank">
 
     <!-- AppCrash -->
-    <NcAppContent v-if="isCrashed" class="crash--wrapper">
+    <NcAppContent v-if="isSettingsFailed" class="crash--wrapper">
       <div class="crash--center">
         <NcNoteCard type="error">
           {{ t("aktenschrank", "Error while fetching the app configuration.") }} <br>
@@ -15,7 +15,7 @@
     </NcAppContent>
 
     <!-- AppLoading -->
-    <NcAppContent v-else-if="isLoading" class="loading--wrapper">
+    <NcAppContent v-else-if="isSettingsLoading" class="loading--wrapper">
       <div class="loading--center">
         <NcLoadingIcon :size="64" />
       </div>
@@ -67,7 +67,7 @@ import InboxIcon from 'vue-material-design-icons/Inbox.vue'
 import TimelineIcon from 'vue-material-design-icons/TimelineClockOutline.vue'
 
 import { useSettingsStore } from './modules/store.js'
-import { mapActions /*, mapState */ } from 'pinia'
+import { mapActions, mapState } from 'pinia'
 
 export default {
   name: 'App',
@@ -92,10 +92,10 @@ export default {
   data() {
     return {
 
-      isLoading: true,
-      isCrashed: false,
-
     }
+  },
+  computed: {
+    ...mapState(useSettingsStore, ['isSettingsLoading', 'isSettingsFailed']),
   },
 
   async mounted() {

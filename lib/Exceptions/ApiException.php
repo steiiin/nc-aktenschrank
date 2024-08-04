@@ -22,7 +22,7 @@ class ApiException extends \Exception
             "message" => $this->getMessage(),
             "data" => $this->data
         ];
-        if ($previous !== null) { $payload["previous"] = $this->previous->getMessage(); }
+        if ($this->previous !== null) { $payload["previous"] = $this->previous->getMessage(); }
         return $payload;
     }
     

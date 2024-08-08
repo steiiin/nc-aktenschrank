@@ -1,3 +1,4 @@
+<!-- App.vue -->
 <template>
   <NcContent app-name="aktenschrank">
 
@@ -44,14 +45,16 @@
         </template>
         <template #footer>
           <ul class="app-navigation-entry__settings">
-            <NcAppNavigationItem :name="t('aktenschrank', 'Settings')" to="/settings" exact>
+            <NcAppNavigationItem :name="t('aktenschrank', 'Settings')"
+              @click="openSettings()">
               <CogIcon slot="icon" />
             </NcAppNavigationItem>
           </ul>
         </template>
       </NcAppNavigation>
       <router-view />
-      <!-- <ConfirmDialog style="z-index: 10000" ref="confirmDialog" /> -->
+
+      <SettingsDialog ref="settingsDialog" :z="10000" />
 
     </template>
 
@@ -66,9 +69,14 @@ import CogIcon from 'vue-material-design-icons/Cog.vue'
 import InboxIcon from 'vue-material-design-icons/Inbox.vue'
 import TimelineIcon from 'vue-material-design-icons/TimelineClockOutline.vue'
 
+import SettingsDialog from './dialogs/SettingsDialog.vue'
+
 import { useSettingsStore } from './modules/store.js'
 import { mapActions, mapState } from 'pinia'
 
+/**
+ * Base component.
+ */
 export default {
   name: 'App',
 
@@ -87,6 +95,8 @@ export default {
     CogIcon,
     InboxIcon,
     TimelineIcon,
+
+    SettingsDialog,
   },
 
   data() {
@@ -95,31 +105,65 @@ export default {
     }
   },
   computed: {
-    ...mapState(useSettingsStore, ['isSettingsLoading', 'isSettingsFailed']),
+    ...mapState(useSettingsStore, ['isSettingsLoading', 'isSettingsFailed', 'isCabinetReady']),
   },
 
   async mounted() {
-
-    await this.loadAppSettings()
-
+    await this.reloadAppSettings()
   },
 
   methods:
   {
 
+    // #region App
+
+    /**
+     * This method reloads window and thus also the app itself.
+     * @return {undefined}
+     */
     reloadApp() {
       document.location.reload()
     },
 
-    ...mapActions(useSettingsStore, ['loadAppSettings']),
+    /**
+     * This method loads app settings and decide if settings dialog is necessary.
+     * @return {undefined}
+     */
+    async reloadAppSettings() {
+      await this.getAppSettings()
+      if (this.isCabinetReady) {
+        console.log('ok')
+      } else {
+        await this.openSettings(false)
+      }
+    },
+
+    // #endregion
+
+    // #region SettingsDialog
+
+    async openSettings(isClosable = true) {
+      const settingsChanged = await this.$refs.settingsDialog.open({
+        isClosable,
+      })
+      if (settingsChanged) {
+        console.log('changed')
+      }
+    },
+
+    // #endregion
+
+    // #region Store
+
+    ...mapActions(useSettingsStore, ['getAppSettings']),
+
+    // #endregion
 
   },
 
 }
 </script>
-
 <style scoped lang="scss">
-
 .app-aktenschrank {
 
   & .crash--wrapper {
@@ -141,5 +185,4 @@ export default {
   }
 
 }
-
 </style>

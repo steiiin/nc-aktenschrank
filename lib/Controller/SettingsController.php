@@ -35,11 +35,12 @@ class SettingsController extends Controller {
 
         try 
         {
-            $localization = $this->apiService->getLocalization();
-            $cabinet = $this->apiService->getCabinet();
-            return ApiResult::json(true, $localization);
+            $localization = $this->apiService->getLocalizationSettings();
+            $cabinet = $this->apiService->getCabinetSettings();
+            return ApiResult::json(true, $localization, $cabinet);
         } 
         catch (\Exception $ex) { ApiResult::error($ex); }
+        
 	}
 
 	#endregion

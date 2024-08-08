@@ -45,8 +45,10 @@ class FileService
    */
   public function isNodeExisting(string $path): bool 
   {
-    return $this->getNode($path) !== null;
+    return $this->getNodeByPath($path) !== null;
   }
+
+  // ##############################################################################################
 
   /**
    * This method returns a Folder for specified path.
@@ -55,13 +57,42 @@ class FileService
    * @return Folder|null Desired Folder, NULL if not found, or a file.
    * 
    */
-  public function getFolder(string $path): ?Folder
+  public function getFolderByPath(string $path): ?Folder
   {
-    $node = $this->getNode($path);
+    $node = $this->getNodeByPath($path);
     if ($node === null) { return null; }
     if ($node instanceof Folder) { return $node; }
     return null;
   }
+
+  /**
+   * This method returns a Folder for specified nodeId.
+   *
+   * @param int $nodeId  Id of the desired Folder.
+   * @return Folder|null Desired Folder, NULL if not found, or a file.
+   * 
+   */
+  public function getFolderById(int $nodeId): ?Folder
+  {
+    $node = $this->getNodeById($nodeId);
+    if ($node === null) { return null; }
+    if ($node instanceof Folder) { return $node; }
+    return null;
+  }
+
+  /**
+   * Checks if the specified Node is a Folder.
+   *
+   * @param Node $node The desired Node.
+   * @return bool TRUE if a Folder, FALSE if not.
+   * 
+   */
+  public function isFolder(Node $node): bool
+  {
+    return $node instanceof Folder;
+  }
+
+  // ##############################################################################################
 
   /**
    * This method checks, if the specified Node is writable.
@@ -82,6 +113,8 @@ class FileService
     return true;
   }
 
+  // ##############################################################################################
+
   /**
    * This method create a new folder a specified path.
    *
@@ -96,7 +129,7 @@ class FileService
 
     if ($this->isNodeExisting(($path)))
     {
-      throw new ExBackend("the folder already exists", [ "path" => $path ]);
+      return $this->getFolderByPath($path);
     }
 
     try 
@@ -119,7 +152,7 @@ class FileService
    * @return Node|null  The desired Node, NULL if not found.
    * 
    */
-  private function getNode(string $path): ?Node 
+  public function getNodeByPath(string $path): ?Node 
   {
 
     // ignore root folder
@@ -134,6 +167,27 @@ class FileService
     {
       return null;
     }
+
+  }
+
+  /**
+   * This method returns the Node for specified node id.
+   *
+   * @param int $nodeId  The nodeId of desired folder/file.
+   * @return Node|null The desired Node, NULL if not found.
+   * 
+   */
+  public function getNodeById(int $nodeId): ?Node 
+  {
+    
+    // try to get Node, otherwise return NULL
+    try 
+    {
+      $nodes = $this->rootFolder->getById($nodeId);
+      if (count($nodes)===0) { return null; }
+			return $nodes[0];
+    }
+    catch (\Throwable) { return null; }
 
   }
 
@@ -165,6 +219,25 @@ class FileService
     }
     return preg_replace('#/+#', '/', '/'.join('/', $paths).'/');
 
+  }
+
+  /**
+   * This method get path relative to users home.
+   *
+   * @param string $absolutePath The absolute path to a Node.
+   * @return string The path relativly to active users home folder.
+   * 
+   * @throws ExBackend If there is no active user, or it was not allowed to access their own home.
+   * 
+   */
+  public function getRelativeToUsersHome(string $absolutePath): string 
+  {
+
+    $usersHomePath = $this->getUsersHomePath();
+    return strpos($absolutePath, $usersHomePath) === 0
+      ? substr($absolutePath, strlen($usersHomePath))
+      : $absolutePath;
+      
   }
 
   #endregion

@@ -15,25 +15,50 @@ export const useSettingsStore = defineStore('settings', {
       language: null,
     },
 
+    cabinet: {
+      path: null,
+      isReady: false,
+      isConfigured: false,
+      isExisting: false,
+      isWritable: false,
+    },
+
   }),
   getters: {
 
-    getUserLanguage: (state) => state.localization.language ?? undefined,
+    isSettingsLoading: (state) => state.isLoading,
+    isSettingsFailed: (state) => state.isFailed,
+
+    cabinetPath: (state) => state.cabinet.path,
+    isCabinetReady: (state) => state.cabinet.isReady,
+    isCabinetConfigured: (state) => state.cabinet.isConfigured,
+    isCabinetExisting: (state) => state.cabinet.isExisting,
+    isCabinetWritable: (state) => state.cabinet.isWritable,
+
     getUserTimezone: (state) => state.localization.timezone ?? undefined,
+    getUserLanguage: (state) => state.localization.language ?? undefined,
 
   },
   actions: {
 
-    async loadAppSettings() {
+    async getAppSettings() {
 
       this.isLoading = true
 
       try {
 
-        const data = (await axios.get(generateUrl('apps/aktenschrank/settings'))).data
-        debugger
-        this.config.timezone = data.timezone
-        this.config.language = data.language
+        const data = (await axios.get(generateUrl('apps/aktenschrank/api/settings'))).data
+
+        // localization
+        this.localization.timezone = data.localization?.timezone ?? null
+        this.localization.language = data.localization?.language ?? null
+
+        // cabinet
+        this.cabinet.path = data.cabinet?.path ?? null
+        this.cabinet.isReady = data.cabinet?.isReady ?? false
+        this.cabinet.isConfigured = data.cabinet?.isConfigured ?? false
+        this.cabinet.isExisting = data.cabinet?.isExisting ?? false
+        this.cabinet.isWritable = data.cabinet?.isWritable ?? false
 
         this.isFailed = false
 

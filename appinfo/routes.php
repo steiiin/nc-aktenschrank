@@ -29,6 +29,9 @@ return [
 		#region Settings
 
 		['name' => 'settings#getSettings', 'url' => '/api/settings', 'verb' => 'GET' ],
+		['name' => 'settings#setSettings', 'url' => '/api/settings', 'verb' => 'POST' ],
+
+		['name' => 'settings#pickFile', 'url' => '/api/filepicker', 'verb' => 'POST' ],
 
 		#endregion
 

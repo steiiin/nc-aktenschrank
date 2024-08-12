@@ -163,6 +163,48 @@ export default {
 
 }
 </script>
+<style lang="scss">
+.aktn-list {
+
+  &--ul {
+    display: flex;
+  }
+
+  &--node {
+
+    display: flex;
+    height: var(--default-clickable-area);
+    align-items: center;
+    gap: .5rem;
+    padding-left: var(--border-radius-element);
+    border-radius: var(--border-radius-element);
+    cursor: pointer;
+
+    transition-property: color, border-color, background-color;
+    transition-duration: 0.1s;
+    transition-timing-function: linear;
+
+    &:hover {
+      background: var(--color-primary-element-light-hover);
+    }
+
+  }
+
+  &--node-disabled {
+
+    opacity: .2;
+    pointer-events: none;
+
+  }
+
+  &--text-decent {
+
+    opacity: .2;
+
+  }
+
+}
+</style>
 <style scoped lang="scss">
 .app-aktenschrank {
 

@@ -34,12 +34,18 @@ class Version000000Date20240101000000 extends SimpleMigrationStep {
 				"notnull" => true,
 				"unsigned" => true,
 			]);
-			$table->addColumn("node_id", "bigint", [
+			$table->addColumn("mount_type", "smallint", [
 				"notnull" => true,
+			]);
+			$table->addColumn("mount_path", "string", [
+				"notnull" => false,
+			]);
+			$table->addColumn("mount_gf_id", "bigint", [
+				"notnull" => false,
 			]);
 
 			$table->setPrimaryKey(["id"]);
-			$table->addUniqueIndex(["node_id"], "uniqaktn_cabinet");
+			$table->addUniqueIndex(["mount_type", "mount_path", "mount_gf_id"], "uniqaktn_cabinet");
 
 		}
 

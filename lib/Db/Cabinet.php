@@ -11,12 +11,16 @@ use OCP\AppFramework\Db\Entity;
 class Cabinet extends Entity {
 
 	// public $id @Entity
-	protected $nodeId;
+	protected $mountType;
+	protected $mountPath;
+	protected $mountGfId;
 
 	public function __construct()
 	{
 		$this->addType('id', 'integer');
-		$this->addType('nodeId', 'integer');
+		$this->addType('mount_type', 'integer');
+		$this->addType('mount_path', 'string');
+		$this->addType('mount_gf_id', 'integer');
 	}
 
 }

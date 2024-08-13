@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### ToAdd
+- Inbox
+- Archive
+- Timeline
 
-- First release
+## [1.0.0]
+
+Filing Cabinet released

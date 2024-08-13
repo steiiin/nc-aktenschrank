@@ -14,3 +14,13 @@ export const concatPaths = (...paths) => {
 }
 
 // #endregion
+// #region Text
+
+export const getFormattedMessage = (rawText) => {
+  return rawText
+    .replaceAll('{break}', '<br>') /* Linebreak */
+    .replaceAll('{b}', '<b>') /* Bold: start */
+    .replaceAll('{/b}', '</b>') /* Bold: end */
+}
+
+// #endregion

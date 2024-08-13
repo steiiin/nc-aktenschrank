@@ -17,14 +17,33 @@
           :key="path" :name="name"
           @click="navigate(path)" />
         <template #actions>
-          <NcButton @click="startNewFolder()">
+          <NcButton style="margin-left: .5rem" @click="beginNewFolder()">
             <template #icon>
               <AddFolderIcon />
             </template>
-            {{ t("aktenschrank", "New") }}
+            {{ t('aktenschrank', 'New Folder') }}
           </NcButton>
         </template>
       </NcBreadcrumbs>
+
+      <FrameInputInline v-if="newfolder.active"
+        input-id="id-input-filepicker-newfolder"
+        :label="t('aktenschrank', 'Name Of The New Folder')"
+        :valid="isValidNewFolder" :value.sync="newfolder.name" clean="filename"
+        @cancel="cancelNewFolder"
+        @accept="acceptNewFolder" />
+
+      <ul v-if="isInitialized && !!contentNodes" class="aktn-filepicker--list">
+
+        <AcNode v-for="node in contentNodes"
+          :key="node.node_id" :node="node" :disabled="node.type!==mode"
+          @click="clickNode" />
+
+        <template v-if="!hasChildren">
+          <AcNoContent :title="t('aktenschrank', 'This Is An Empty Folder')" type="decent" />
+        </template>
+
+      </ul>
 
     </template>
     <template #buttons>
@@ -32,7 +51,7 @@
         @click="cancel">
         {{ t('aktenschrank', 'Cancel') }}
       </NcButton>
-      <NcButton type="primary"
+      <NcButton type="primary" :disabled="!isValidDialog"
         @click="choose">
         {{ t('aktenschrank', 'Choose') }}
       </NcButton>
@@ -47,11 +66,15 @@ import { NcBreadcrumb, NcBreadcrumbs, NcButton } from '@nextcloud/vue'
 import AddFolderIcon from 'vue-material-design-icons/FolderPlusOutline.vue'
 import HomeIcon from 'vue-material-design-icons/Home.vue'
 
+import AcNoContent from '../components/AcNoContent.vue'
+import AcNode from '../components/AcNode.vue'
 import BasicDialog from './BasicDialog.vue'
+import FrameInputInline from '../components/FrameInputInline.vue'
 
 import axios from '@nextcloud/axios'
 import { showError } from '@nextcloud/dialogs'
 import { generateUrl } from '@nextcloud/router'
+import { concatPaths } from '../modules/manipulations.js'
 
 /**
  * Dialog to pick a Node in NC storage.
@@ -67,7 +90,10 @@ export default {
     AddFolderIcon,
     HomeIcon,
 
+    AcNoContent,
+    AcNode,
     BasicDialog,
+    FrameInputInline,
   },
 
   props: {
@@ -85,12 +111,16 @@ export default {
 
   data: () => ({
     isLoading: true,
+    isInitialized: false,
 
     mode: 'file',
-    selected: { name: '', path: '' },
+    selected: { name: '', path: '', hasChildren: false, hasFolders: false, isGroupfolder: false, isCabinet: false },
 
-    currentNodes: [],
+    currentNode: { path: '' },
+    contentNodes: [],
     parentNodes: [],
+
+    newfolder: { active: false, name: '' },
 
     resolvePromise: undefined,
     rejectPromise: undefined,
@@ -98,6 +128,10 @@ export default {
   computed: {
 
     // #region Visibility
+
+    hasChildren() {
+      return this.contentNodes.length > 0
+    },
 
     // #endregion
     // #region Language
@@ -108,7 +142,15 @@ export default {
 
     // #endregion
 
-    // #region Store
+    // #region Validation
+
+    isValidNewFolder() {
+      return this.newfolder.name.trim() !== ''
+    },
+
+    isValidDialog() {
+      return this.selected.path !== null && !this.isLoading && !this.newfolder.active
+    },
 
     // #endregion
 
@@ -140,7 +182,18 @@ export default {
         folder: t('aktenschrank', 'Choose a folder'),
       }[this.mode]
 
-      this.isLoading = false
+      // reset picker
+      this.isInitialized = false
+      this.contentNodes = []
+      this.parentNodes = []
+      this.selected.name = null
+      this.selected.path = null
+      this.selected.isGroupfolder = false
+      this.selected.isCabinet = false
+      this.newfolder.active = false
+      this.newfolder.name = ''
+      this.currentNode.path = '/'
+      this.navigate(opts?.path ?? '/')
 
       // show and return Promise
       return this.$refs.basicDialog.open({
@@ -156,8 +209,7 @@ export default {
      * @return {undefined}
      */
     async choose() {
-      // TODO: implement choosing
-      this.$refs.basicDialog.resolve(true)
+      this.$refs.basicDialog.resolve(this.selected)
     },
 
     /**
@@ -177,11 +229,19 @@ export default {
       if (!this.$refs.basicDialog.isDialogActive) { return }
       switch (e.key) {
         case 'Enter':
-          this.choose()
+          if (this.newfolder.active) {
+            this.acceptNewFolder()
+          } else {
+            this.choose()
+          }
           e.stopImmediatePropagation()
           break
         case 'Escape':
-          this.cancel()
+          if (this.newfolder.active) {
+            this.cancelNewFolder()
+          } else {
+            this.cancel()
+          }
           e.stopImmediatePropagation()
           break
       }
@@ -191,15 +251,23 @@ export default {
 
     // #region FilePicker
 
-    async navigate(to) {
+    /**
+     * This method navigates to a folder.
+     * @param {string} to Path of the desired folder.
+     * @param {boolean} create Request creation of the specified path.
+     * @return {Promise} Promise that can be waited for.
+     */
+    async navigate(to, create = false) {
       this.isLoading = true
+      this.cancelNewFolder()
       try {
 
-        const query = { path: to }
+        const query = { path: to, create }
         const response = (await axios.post(generateUrl('apps/aktenschrank/api/filepicker'), query)).data
 
         this.parentNodes = response.parentNodes
-        this.currentNodes = response.currentNodes
+        this.contentNodes = response.contentNodes
+        this.currentNode.path = response.selected.path
 
         if (this.mode === 'file') {
 
@@ -208,16 +276,19 @@ export default {
 
         } else if (this.mode === 'folder') {
 
-          this.selected.path = response.path
-          this.selected.name = response.name ?? t('aktenschrank', 'Home')
+          this.selected.path = response.selected.path
+          this.selected.name = response.selected.name ?? t('aktenschrank', 'Home')
+          this.selected.hasChildren = response.selected.hasChildren
+          this.selected.hasFolders = response.selected.hasFolders
+          this.selected.isGroupfolder = response.selected.isGroupfolder
+          this.selected.isCabinet = response.selected.isCabinet
 
         }
-
-        debugger
+        this.isInitialized = true
 
       } catch (error) {
 
-        showError(t('aktenschrank', 'Error while navigating to \'{path}\'.', { path: to }))
+        showError(t('aktenschrank', "Error while navigating to '{path}'.", { path: to }))
         console.error(error)
 
       } finally {
@@ -226,6 +297,60 @@ export default {
 
       }
     },
+
+    /**
+     * This method decide how to proceed with clicked node.
+     * @param {object} node The node to be processed.
+     * @return {undefined}
+     */
+    clickNode(node) {
+      if (node.type === 'folder') {
+
+        // navigate further
+        this.navigate(node.path.relative)
+
+      } else if (node.type === 'file') {
+
+        // TODO: select file
+
+      }
+    },
+
+    // #region NewFolder
+
+    /**
+     * Display the input to enter a new folder name.
+     * @return {Promise} Promise that can be waited for.
+     */
+    async beginNewFolder() {
+      this.newfolder.name = ''
+      this.newfolder.active = true
+      await this.$nextTick()
+      document.getElementById('id-input-filepicker-newfolder')?.focus()
+    },
+
+    /**
+     * Hide the input to enter a new folder name.
+     * @return {undefined}
+     */
+    cancelNewFolder() {
+      this.newfolder.active = false
+    },
+
+    /**
+     * Navigates to the desired new folder path.
+     * @return {undefined}
+     */
+    acceptNewFolder() {
+      if (!this.isValidNewFolder) { return }
+      this.cancelNewFolder()
+
+      // create new path
+      const newPath = concatPaths(this.currentNode.path, this.newfolder.name)
+      this.navigate(newPath, true)
+    },
+
+    // #endregion
 
     // #endregion
 

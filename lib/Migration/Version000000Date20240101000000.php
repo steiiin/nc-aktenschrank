@@ -45,7 +45,8 @@ class Version000000Date20240101000000 extends SimpleMigrationStep {
 			]);
 
 			$table->setPrimaryKey(["id"]);
-			$table->addUniqueIndex(["mount_type", "mount_path", "mount_gf_id"], "uniqaktn_cabinet");
+			$table->addUniqueIndex(['mount_type', 'mount_gf_id'], 'uniqaktn_cabinet_gf');
+			$table->addUniqueIndex(['mount_type', 'mount_path'], 'uniqaktn_cabinet_path');
 
 		}
 

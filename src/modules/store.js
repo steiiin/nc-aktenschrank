@@ -20,7 +20,9 @@ export const useSettingsStore = defineStore('settings', {
       isReady: false,
       isConfigured: false,
       isExisting: false,
+      isReadable: false,
       isWritable: false,
+      isGroupfolder: false,
     },
 
   }),
@@ -33,7 +35,9 @@ export const useSettingsStore = defineStore('settings', {
     isCabinetReady: (state) => state.cabinet.isReady,
     isCabinetConfigured: (state) => state.cabinet.isConfigured,
     isCabinetExisting: (state) => state.cabinet.isExisting,
+    isCabinetReadable: (state) => state.cabinet.isReadable,
     isCabinetWritable: (state) => state.cabinet.isWritable,
+    isCabinetGroupfolder: (state) => state.cabinet.isGroupfolder,
 
     getUserTimezone: (state) => state.localization.timezone ?? undefined,
     getUserLanguage: (state) => state.localization.language ?? undefined,
@@ -58,7 +62,9 @@ export const useSettingsStore = defineStore('settings', {
         this.cabinet.isReady = data.cabinet?.isReady ?? false
         this.cabinet.isConfigured = data.cabinet?.isConfigured ?? false
         this.cabinet.isExisting = data.cabinet?.isExisting ?? false
+        this.cabinet.isReadable = data.cabinet?.isReadable ?? false
         this.cabinet.isWritable = data.cabinet?.isWritable ?? false
+        this.cabinet.isGroupfolder = data.cabinet?.isGroupfolder ?? false
 
         this.isFailed = false
 

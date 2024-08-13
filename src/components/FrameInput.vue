@@ -61,5 +61,10 @@ export default {
     flex: 1;
   }
 
+  &--actions {
+    display: flex;
+    flex-direction: row;
+  }
+
 }
 </style>

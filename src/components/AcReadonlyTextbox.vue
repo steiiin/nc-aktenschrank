@@ -1,6 +1,6 @@
 <!-- AcReadonlyTextbox.vue -->
 <template>
-  <div class="aktn-ro-textbox" @click="$emit('click')">
+  <div class="aktn-list--node aktn-ro-textbox" @click="$emit('click')">
     {{ text }}
   </div>
 </template>
@@ -23,20 +23,12 @@ export default {
 </script>
 <style scoped lang="scss">
 .aktn-ro-textbox {
-  height: var(--default-clickable-area);
-  display: flex;
-  align-items: center;
-  background: var(--color-primary-element-light);
-  border-radius: var(--border-radius-element);
-  padding-left: var(--border-radius-element);
-  cursor: pointer;
 
-  transition-property: color, border-color, background-color;
-  transition-duration: 0.1s;
-  transition-timing-function: linear;
+  background: var(--color-primary-element-light);
 
   &:hover {
     background: var(--color-primary-element-light-hover);
   }
+
 }
 </style>

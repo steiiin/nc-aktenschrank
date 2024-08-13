@@ -150,7 +150,6 @@ export default {
      * @return {undefined}
      */
     resolve(opts = false) {
-      if (!this.isClosable) { return }
       this.hide()
       this.resolvePromise(opts)
     },

@@ -143,11 +143,11 @@ export default {
     // #region SettingsDialog
 
     async openSettings(isClosable = true) {
-      const settingsChanged = await this.$refs.settingsDialog.open({
+      const hasChanged = await this.$refs.settingsDialog.open({
         isClosable,
       })
-      if (settingsChanged) {
-        console.log('changed')
+      if (hasChanged) {
+        this.reloadAppSettings()
       }
     },
 

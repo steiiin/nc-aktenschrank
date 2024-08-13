@@ -9,15 +9,14 @@
 
       <FrameGroup :title="t('aktenschrank', 'Working Directory')">
 
-        <NcNoteCard v-if="showReady" type="success">
-          {{ t('aktenschrank', 'You\'ve properly set up the filing cabinet.') }}
-        </NcNoteCard>
-        <NcNoteCard v-if="showPrepSetup" type="success">
+        <AcInfoCard v-if="showReady" type="success"
+          :message="t('aktenschrank', `You've properly set up the filing cabinet.`)" />
+        <AcInfoCard v-if="showPrepSetup" type="success"
+          :message="t('aktenschrank', 'You must first set up my working directory before you can use the filing cabinet.')">
           <template #icon>
             <CogIcon />
           </template>
-          {{ t('aktenschrank', 'You must first set up my working directory before you can use the filing cabinet.') }}
-        </NcNoteCard>
+        </AcInfoCard>
 
         <FrameInput
           :label="t('aktenschrank', 'Path to the folder, where I store your documents and data')"
@@ -32,22 +31,23 @@
           </template>
         </FrameInput>
 
-        <NcNoteCard v-if="showPermIssue" type="error">
-          {{ t('aktenschrank', 'The filing cabinet exists, but you do not have write access. Please check the folder permissions.') }}
-        </NcNoteCard>
-        <NcNoteCard v-if="showCabMissing" type="error">
-          {{ t('aktenschrank', 'The filing cabinet is missing. You set it up before - did you delete it by mistake?') }}
-        </NcNoteCard>
+        <AcInfoCard v-if="!isValidCabinetPath && !showCabMissing" type="error"
+          :message="t('aktenschrank', 'You must provide a valid path.')" />
+        <AcInfoCard v-if="showPermReadonly" type="info"
+          :message="t('aktenschrank', 'You only have {b}read-only{/b} access.')" />
+        <AcInfoCard v-if="showPermIssue" type="error"
+          :message="t('aktenschrank', 'The filing cabinet exists, but you do not have write access. Please check the folder permissions.')" />
+        <AcInfoCard v-if="showCabMissing" type="error"
+          :message="t('aktenschrank', 'The filing cabinet is missing. You set it up before - {b}did you delete it by mistake?{/b}')" />
 
-        <NcNoteCard v-if="showPrepPermIssue" type="warning">
-          {{ t('aktenschrank', 'The folder you\'ve selected exists, but you do not have write access. Please check the folder permissions or select another folder.') }}
-        </NcNoteCard>
-        <NcNoteCard v-if="showPrepExisting" type="warning">
-          {{ t('aktenschrank', 'The folder you\'ve selected isn\'t empty. Please ensure it is safe to store new data here and that no important files will be overwritten.') }}
-        </NcNoteCard>
-        <NcNoteCard v-if="showPrepAvailable" type="info">
-          {{ t('aktenschrank', 'The folder you\'ve selected doesn\'t exist. I\'ll create it for you.') }}
-        </NcNoteCard>
+        <AcInfoCard v-if="showPrepHasChildren" type="warning"
+          :message="t('aktenschrank', `The folder you've selected {b}isn't empty{/b}.{break}Normally, an empty folder should be choosed unless you're sure that the selected one is already registered as a {b}Filing Cabinet{/b} by another user.`)" />
+        <AcInfoCard v-if="showPrepAlreadyCabinet" type="info"
+          :message="t('aktenschrank', `The folder you've selected {b}is already a filing cabinet{/b}.{break}You'll switch to this one.`)" />
+        <AcInfoCard v-if="showPrepAvailable" type="info"
+          :message="t('aktenschrank', `The folder you've selected doesn't exist.{break}I'll create it for you.`)" />
+        <AcInfoCard v-if="showGroupfolder" type="info"
+          :message="t('aktenschrank', `The folder you've selected is a {b}group folder{/b}.{break}The filing cabinet is {b}shared by every user{/b} who can access it.`)" />
 
       </FrameGroup>
 
@@ -57,28 +57,35 @@
         @click="cancelSettings">
         {{ t('aktenschrank', 'Cancel') }}
       </NcButton>
-      <NcButton type="primary" :wide="!isClosable"
+      <NcButton type="primary" :wide="!isClosable" :disabled="!isValidDialog"
         @click="saveSettings">
         {{ t('aktenschrank', 'Save') }}
       </NcButton>
     </template>
 
+    <ConfirmDialog ref="confirmDialog" :z="10010" />
     <FilePickerDialog ref="filePickerDialog" :z="10010" />
 
   </BasicDialog>
 </template>
 
 <script>
-import { NcButton, NcNoteCard } from '@nextcloud/vue'
+import { NcButton } from '@nextcloud/vue'
 
 import CogIcon from 'vue-material-design-icons/Cog.vue'
 
+import AcInfoCard from '../components/AcInfoCard.vue'
 import AcReadonlyTextbox from '../components/AcReadonlyTextbox.vue'
 import BasicDialog from './BasicDialog.vue'
+import ConfirmDialog from './ConfirmDialog.vue'
 import FilePickerDialog from './FilePickerDialog.vue'
 import FrameGroup from '../components/FrameGroup.vue'
 import FrameInput from '../components/FrameInput.vue'
 
+import axios from '@nextcloud/axios'
+import { showError } from '@nextcloud/dialogs'
+import { generateUrl } from '@nextcloud/router'
+import { isValidPathValue } from '../modules/validation.js'
 import { useSettingsStore } from '../modules/store.js'
 import { mapState } from 'pinia'
 
@@ -90,12 +97,13 @@ export default {
 
   components: {
     NcButton,
-    NcNoteCard,
 
     CogIcon,
 
+    AcInfoCard,
     AcReadonlyTextbox,
     BasicDialog,
+    ConfirmDialog,
     FilePickerDialog,
     FrameGroup,
     FrameInput,
@@ -121,7 +129,7 @@ export default {
 
     cabinet: {
       path: '',
-      selected: { path: '', isExisting: false, isWritable: false },
+      selected: { path: '', isExisting: false, hasChildren: false, isGroupfolder: false, isCabinet: false },
     },
 
     resolvePromise: undefined,
@@ -136,26 +144,32 @@ export default {
     },
 
     showReady() {
-      return this.isCabinetConfigured && this.isCabinetWritable
+      return !this.isSettingCabinetChanged && this.isCabinetConfigured && this.isCabinetWritable
     },
     showPermIssue() {
-      return !this.isSettingCabinetChanged && this.isCabinetConfigured && this.isCabinetExisting && !this.isCabinetWritable
+      return !this.isSettingCabinetChanged && this.isCabinetConfigured && this.isCabinetExisting && !this.isCabinetReadable
+    },
+    showPermReadonly() {
+      return !this.isSettingCabinetChanged && this.isCabinetConfigured && this.isCabinetExisting && this.isCabinetReadable && !this.isCabinetWritable
     },
     showCabMissing() {
-      return !this.isSettingCabinetChanged && this.isCabinetConfigured && !this.isCabinetWritable
+      return !this.isSettingCabinetChanged && this.isCabinetConfigured && !this.isCabinetExisting
     },
 
     showPrepSetup() {
       return !this.isCabinetConfigured
     },
-    showPrepPermIssue() {
-      return !this.isCabinetConfigured && this.cabinet.selected.isExisting && !this.cabinet.selected.isWritable
+    showPrepHasChildren() {
+      return this.isSettingCabinetChanged && this.cabinet.selected.isExisting && !this.cabinet.selected.isCabinet && this.cabinet.selected.hasChildren
     },
-    showPrepExisting() {
-      return !this.isCabinetConfigured && this.cabinet.selected.isExisting && this.cabinet.selected.isWritable
+    showPrepAlreadyCabinet() {
+      return this.isSettingCabinetChanged && this.cabinet.selected.isExisting && this.cabinet.selected.isCabinet
     },
     showPrepAvailable() {
-      return !this.isCabinetConfigured && !this.cabinet.selected.isExisting
+      return this.isSettingCabinetChanged && !this.cabinet.selected.isExisting && !this.cabinet.selected.isCabinet
+    },
+    showGroupfolder() {
+      return this.isSettingCabinetChanged && this.cabinet.selected.isGroupfolder
     },
 
     // #endregion
@@ -163,6 +177,20 @@ export default {
 
     langCabinetPathPlaceholder() {
       return this.cabinet.path ?? t('aktenschrank', 'Working Folder')
+    },
+
+    // #endregion
+    // #region Validation
+
+    isValidCabinetPath() {
+      return isValidPathValue(this.cabinet.selected.path)
+    },
+
+    hasAnythingChanged() {
+      return true
+    },
+    isValidDialog() {
+      return this.hasAnythingChanged && this.isValidCabinetPath
     },
 
     // #endregion
@@ -174,7 +202,9 @@ export default {
       'isCabinetReady',
       'isCabinetConfigured',
       'isCabinetExisting',
+      'isCabinetReadable',
       'isCabinetWritable',
+      'isCabinetGroupfolder',
     ]),
 
     // #endregion
@@ -224,7 +254,81 @@ export default {
      * @return {undefined}
      */
     async saveSettings() {
-      this.$refs.basicDialog.resolve(true)
+
+      // ask user about action
+      let moveCab = false
+      if (this.isCabinetConfigured && this.isSettingCabinetChanged) {
+
+        if (this.isCabinetGroupfolder || this.cabinet.selected.isGroupfolder || this.cabinet.selected.isCabinet) {
+
+          let textGrFo = ''
+          if (this.isCabinetGroupfolder && this.cabinet.selected.isGroupfolder) {
+            textGrFo = t('aktenschrank', 'Both your current working folder and the selected one are group folders, and you {b}cannot move{/b} either of them.')
+          } else if (this.isCabinetGroupfolder) {
+            textGrFo = t('aktenschrank', 'Your current working folder is a group folder and {b}cannot be moved{/b} to a new location.')
+          } else if (this.cabinet.selected.isGroupfolder) {
+            textGrFo = t('aktenschrank', 'The selected folder is a group folder, and you {b}cannot move{/b} your current data there.')
+          }
+
+          let textSwit = ''
+          let textBtn = ''
+          if (this.cabinet.selected.isCabinet) {
+            textSwit = t('aktenschrank', 'The selected location already contains a {b}Filing Cabinet{/b}. {break}You can only {b}settle in{/b} this location.')
+            textBtn = t('aktenschrank', 'Settle In')
+          } else {
+            textSwit = t('aktenschrank', 'You can only create a {b}new, empty Filing Cabinet{/b} in the selected location.')
+            textBtn = t('aktenschrank', 'Create New')
+          }
+
+          // no moving allowed
+          const proceed = await this.$refs.confirmDialog.open({
+            title: t('aktenschrank', 'Change Filing Cabinet?'),
+            message: t('aktenschrank', "You've already configured a Filing Cabinet.{break}" + textGrFo + '{break}' + textSwit),
+            negText: t('aktenschrank', 'Cancel'),
+            posText: textBtn,
+            important: false,
+          })
+          if (!proceed) {
+            return
+          }
+
+        } else {
+
+          // moving allowed
+          moveCab = await this.$refs.confirmDialog.open({
+            title: t('aktenschrank', 'Move Filing Cabinet?'),
+            message: t('aktenschrank', "You've already configured a Filing Cabinet.{break}Would you like to {b}move your data{/b} to the new location or {b}create a new{/b} Filing Cabinet there?"),
+            negText: t('aktenschrank', 'Create New'),
+            posText: t('aktenschrank', 'Move My Cabinet'),
+            important: true,
+          })
+
+        }
+
+      }
+
+      this.isLoading = true
+      try {
+
+        // POST Settings
+        const query = { cabinet: { path: this.cabinet.selected.path, moveExisting: moveCab ?? false } }
+        const response = (await axios.post(generateUrl('apps/aktenschrank/api/settings'), query)).data
+        if (!(response?.success ?? false)) { throw new Error('no success transmitted') }
+
+        // close dialog
+        this.$refs.basicDialog.resolve(true)
+
+      } catch (error) {
+
+        showError(t('aktenschrank', 'Error while updating the settings.'))
+        console.error(error)
+
+      } finally {
+
+        this.isLoading = false
+
+      }
+
     },
 
     /**
@@ -241,10 +345,19 @@ export default {
      * @return {undefined}
      */
     handleKeydown(e) {
+
+      // skip, if not active
       if (!this.$refs.basicDialog.isDialogActive) { return }
+
+      // send keys to active children
+      if (this.$refs.filePickerDialog.$refs.basicDialog.isDialogActive) {
+        this.$refs.filePickerDialog.handleKeydown(e)
+        return
+      }
+
+      // catch keys
       switch (e.key) {
         case 'Enter':
-          this.saveSettings()
           e.stopImmediatePropagation()
           break
         case 'Escape':
@@ -252,6 +365,7 @@ export default {
           e.stopImmediatePropagation()
           break
       }
+
     },
 
     // #endregion
@@ -268,7 +382,11 @@ export default {
         description: t('aktenschrank', 'Pick a working folder for the filing cabinet.'),
       })
       if (selectedFolder) {
-        console.log('changed')
+        this.cabinet.selected.path = selectedFolder.path
+        this.cabinet.selected.isExisting = true
+        this.cabinet.selected.hasChildren = selectedFolder.hasChildren
+        this.cabinet.selected.isGroupfolder = selectedFolder.isGroupfolder
+        this.cabinet.selected.isCabinet = selectedFolder.isCabinet
       }
     },
 

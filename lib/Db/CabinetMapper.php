@@ -85,9 +85,7 @@ class CabinetMapper extends QBMapper {
 
 			// create query for Groupfolder-Type
 			$groupfolderId = $this->fileService->getGroupfolderId($node);
-			$relativePath = trim($this->fileService->getRelativeToUsersHome($path), "/");
 			$qb->where($qb->expr()->eq("mount_type", $qb->createNamedParameter(self::MOUNTTYPE_GROUPFOLDER, IQueryBuilder::PARAM_INT)));
-			$qb->andWhere($qb->expr()->iLike("mount_path", $qb->createNamedParameter($relativePath, IQueryBuilder::PARAM_STR)));
 			$qb->andWhere($qb->expr()->eq("mount_gf_id", $qb->createNamedParameter($groupfolderId, IQueryBuilder::PARAM_INT)));
 			
 		}
@@ -130,22 +128,74 @@ class CabinetMapper extends QBMapper {
 	 * @throws ExBackend If database error occured
 	 * 
 	 */
-	public function register(Folder $node): Cabinet 
+	public function registerOrSettleIn(Folder $node): Cabinet 
 	{
-
-		// prepare data
-		$path = rtrim($node->getPath(), "/");
-		$isGroupfolder = $this->fileService->isGroupfolder($node);
 
 		// find Cabinet
 		$cabinet = $this->findByNode($node);
-		$isNew = $cabinet === null;
+		return $cabinet === null
+			? $this->register($node, null)
+			: $cabinet;
+	
+	}
 
-		// create new one, if not found
+	/**
+	 * This method registers a specified Folder as new value in existing Cabinet.
+	 *
+	 * @param Folder $node The desired Folder that is to be registered.
+	 * @param Cabinet $cabinet The existing Cabinet that is to be updated.
+	 * @return Cabinet The updated Cabinet.
+	 * 
+	 */
+	public function updateRegistered(Folder $node, Cabinet $cabinet): Cabinet
+	{
+		return $this->register($node, $cabinet);
+	}
+
+	/**
+	 * This method deletes specified Cabinet.
+	 *
+	 * @param Cabinet $cabinet The desired Cabinet that is to be deleted.
+	 * @return void
+	 * 
+	 * @throws ExBackend If removing failed.
+	 * 
+	 */
+	public function unregister(Cabinet $cabinet)
+	{
+		try 
+		{
+			$this->delete($cabinet);
+		}
+		catch (\Exception $ex)
+		{
+			throw new ExBackend("removing cabinet failed", [], $ex);
+		}
+	}
+
+	/**
+	 * This method registers a specified Folder.
+	 *
+	 * @param Folder $node The desired Folder.
+	 * @param Cabinet $cabinet The Cabinet that should to be updated, or NULL if a new should to be created.
+	 * @return Cabinet The newly registered Cabinet.
+	 * 
+	 * @throws ExBackend If database error occured
+	 * 
+	 */
+	private function register(Folder $node, ?Cabinet $cabinet): Cabinet
+	{
+
+		// create new cab if not specified
+		$isNew = $cabinet === null;
 		if ($isNew)
 		{
 			$cabinet = new Cabinet();
 		}
+
+		// prepare data
+		$path = rtrim($node->getPath(), "/");
+		$isGroupfolder = $this->fileService->isGroupfolder($node);
 
 		// update/insert Node data
 		if ($isGroupfolder)
@@ -170,7 +220,7 @@ class CabinetMapper extends QBMapper {
 		{
 			throw new ExBackend("error while insert-/updating Cabinet", [], $ex);
 		}
-	
+
 	}
 
 	// ##################################################################################
@@ -202,7 +252,7 @@ class CabinetMapper extends QBMapper {
 
 			// find folder
 			$path = $cabinet->getMountPath();
-			return $this->fileService->getFolder($path);
+			return $this->fileService->getFolder($path, true);
 
 		}
 		else 

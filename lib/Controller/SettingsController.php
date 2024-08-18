@@ -128,6 +128,6 @@ class SettingsController extends Controller {
 
     #endregion
 
-    #region
+    #endregion
 
 }

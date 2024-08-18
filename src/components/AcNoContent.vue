@@ -1,7 +1,8 @@
 <!-- AcNoContent.vue -->
 <template>
   <div class="aktn-nocontent" :class="{
-    'aktn-nocontent--decent': isDecent
+    'aktn-nocontent--decent': isDecent,
+    'aktn-nocontent--huge': isHuge
   }">
     <div class="aktn-nocontent--icon">
       <EmptyGeneralIcon :size="iconSize" />
@@ -52,11 +53,16 @@ export default {
     isNormal() {
       return this.type === 'normal'
     },
+    isHuge() {
+      return this.type === 'huge'
+    },
     iconSize() {
       if (this.isDecent) {
         return 24
-      } else {
+      } else if (this.isHuge) {
         return 64
+      } else {
+        return 36
       }
     },
   },
@@ -73,14 +79,21 @@ export default {
   padding: 1rem;
   gap: .5em;
 
-  &--title {
-    font-weight: bold;
-  }
-
   &--decent {
+
     flex-direction: row;
     opacity: .2;
+
+  }
+
+  &--huge {
+
+    & .aktn-nocontent--title {
+      font-weight: bold;
+    }
+
   }
 
 }
+
 </style>

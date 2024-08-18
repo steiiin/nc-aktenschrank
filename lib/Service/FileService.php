@@ -6,6 +6,8 @@ declare(strict_types=1);
 
 namespace OCA\Aktenschrank\Service;
 
+use OCA\Aktenschrank\Abstraction\FileItem;
+use OCA\Aktenschrank\Abstraction\FolderItem;
 use OCA\Aktenschrank\AppInfo\Application;
 use OCA\Aktenschrank\Exceptions\ExBackend;
 use OCA\Aktenschrank\Exceptions\ExBadRequest;
@@ -235,13 +237,13 @@ class FileService
         usort($content, function($a, $b) 
         {
           // first compare by type
-          $typeComparison = strcmp($b["type"], $a["type"]); /* desc */
+          $typeComparison = strcmp($b->type, $a->type); /* desc */
           if ($typeComparison !== 0) {
               return $typeComparison;
           }
 
           // if types are equal, compare by name
-          return strcmp($a["name"], $b["name"]);
+          return strcmp($a->name, $b->name);
         });
 
       }
@@ -263,6 +265,46 @@ class FileService
       throw new ExBadRequest("specified path leads to a file", [ "path" => $node->getPath() ]);
     }
     
+  }
+
+  /**
+   * This method recursivly get all files in a given Folder.
+   *
+   * @param Folder $node The Folder in which all files are to be listed.
+   * @return Array Array of Files.
+   * 
+   * @throws ExBadRequest If Folder not found.
+   */
+  public function getFolderAllFiles(Folder $node): Array 
+  {
+
+    $result = [];
+
+    // get listing
+    try 
+    {
+      $listing = $node->getDirectoryListing();
+    }
+    catch (\Exception $ex)
+    {
+      throw new ExBadRequest("folder not found", [], $ex);
+    }
+
+    // iterate through each child
+    foreach ($listing as $child)
+    {
+      if ($this->isFile($child))
+      {
+        $result[] = $child;
+      }
+      else if ($this->isFolder($child))
+      {
+        $result = array_merge($result, $this->getFolderAllFiles($child));
+      }
+    }
+
+    return $result;
+
   }
 
   /**
@@ -527,10 +569,10 @@ class FileService
   /**
    * This method converts a Node to a JSON array.
    * @param Node $node The desired Node.
-   * @return Array The desired JSON array.
+   * @return FileItem|FolderItem The desired JSON abstraction.
    * 
    */
-  public function getNodeAsJson(Node $node): Array 
+  public function getNodeAsJson(Node $node): FileItem|FolderItem 
   {
 
     if ($this->isFolder($node))
@@ -541,18 +583,7 @@ class FileService
       $content = $this->getFolderContent($node);
 
       // create JSON
-      return [
-        "type" => "folder",
-        "name" => $node->getName(),
-        "node_id" => $node->getId(),
-        "path" => [
-          "absolute" => $path,
-          "relative" => $this->getRelativeToUsersHome($path)
-        ],
-        "hasChildren" => $content[self::FOLDERCONTENT_HASCHILDREN],
-        "hasFolders" => $content[self::FOLDERCONTENT_HASFOLDERS],
-        "isGroupfolder" => $content[self::FOLDERCONTENT_ISGROUPFOLDER]
-      ];
+      return FolderItem::fromFolder($node, $this);
 
     }
     elseif ($this->isFile($node))
@@ -563,21 +594,7 @@ class FileService
       $pathinfo = pathinfo($node->getPath());
 
       // create JSON
-      return [
-        "type" => "file",
-        "name" => $node->getName(),
-        "node_id" => $node->getId(),
-        "path" => [
-          "absolute" => $path,
-          "relative" => $this->getRelativeToUsersHome($path),
-          "webdav" => $this->getWebdavPath($path)
-        ],
-        "time_upload" => $node->getUploadTime(),
-        "file_ext" => $pathinfo["extension"],
-        "file_name" => $pathinfo["filename"],
-        "file_mime" => $node->getMimeType(),
-        "file_size" => $node->getSize()
-      ];
+      return FileItem::fromFile($node, $this);
 
     }
 

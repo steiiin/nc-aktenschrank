@@ -23,6 +23,23 @@ class Validation
     }
 
     /**
+     * This method converts a filename to a more readable title.
+     *
+     * @param string $name
+     * @return string
+     * 
+     */
+    public static function simplifyFilename(string $name): string 
+    {
+        $cleanValue = mb_substr($name, 0, 250);
+        $cleanValue = preg_replace('/[^\p{L}\p{N} \-_\(\)\[\]\@$€§%°.]+/u', '', $cleanValue);
+
+        return implode('', array_map(function($name) {
+            return ucfirst($name);
+        }, array_filter(array_map('trim', explode(' ', preg_replace('/[^\w ]/', ' ', str_replace('_', ' ', $cleanValue)))))));
+    }
+
+    /**
      * This method checks if a specified value is a valid path.
      * @param mixed $value The value to be checked.
      * @param bool $isRootAllowed If '/' is allowed or prohibited.

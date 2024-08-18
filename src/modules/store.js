@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon'
 import { defineStore } from 'pinia'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
@@ -45,6 +46,17 @@ export const useSettingsStore = defineStore('settings', {
   },
   actions: {
 
+    // #region Localization
+
+    getMomentFromTimestamp(timestamp) {
+      return DateTime.fromSeconds(timestamp, { zone: this.getUserTimezone, locale: this.getUserLanguage })
+    },
+    getMomentFromDate(date) {
+      return DateTime.fromJSDate(date, { zone: this.getUserTimezone, locale: this.getUserLanguage })
+    },
+
+    // #endregion
+
     async getAppSettings() {
 
       this.isLoading = true
@@ -74,6 +86,58 @@ export const useSettingsStore = defineStore('settings', {
         console.error(error)
 
         this.isFailed = true
+
+      } finally {
+        this.isLoading = false
+      }
+
+    },
+
+  },
+
+})
+
+// #endregion
+// #region Inbox
+
+export const useInboxStore = defineStore('inbox', {
+  state: () => ({
+
+    isLoading: true,
+    isInitialized: false,
+    items: [],
+
+  }),
+  getters: {
+
+    isInboxLoading: (state) => state.isLoading,
+    isInboxInitialized: (state) => state.isInitialized,
+
+    inboxItems: (state) => state.items ?? [],
+    inboxCount: (state) => state.inboxItems.length,
+    isInboxEmpty: (state) => state.inboxCount < 1,
+
+  },
+  actions: {
+
+    async getInbox(forceGet = false) {
+
+      if (this.isLoading && !forceGet) { return }
+      this.isLoading = true
+
+      try {
+
+        const data = (await axios.get(generateUrl('apps/aktenschrank/api/inbox'))).data
+        this.items = data.inboxItems
+
+        this.isInitialized = true
+        return true
+
+      } catch (error) {
+
+        console.error('Aktenschrank: failed to load inbox')
+        console.error(error)
+        return false
 
       } finally {
         this.isLoading = false

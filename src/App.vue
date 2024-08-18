@@ -29,14 +29,14 @@
         <template #list>
           <NcAppNavigationItem :name="t('aktenschrank', 'Timeline')" to="/timeline">
             <TimelineIcon slot="icon" />
-            <NcCounterBubble v-show="timelineOpen > 0" slot="counter" type="highlighted">
-              <!-- {{ timelineOpen }} -->
-            </NcCounterBubble>
+            <!-- <NcCounterBubble v-show="timelineOpen > 0" slot="counter" type="highlighted">
+              {{ timelineOpen }}
+            </NcCounterBubble> -->
           </NcAppNavigationItem>
           <NcAppNavigationItem :name="t('aktenschrank', 'Inbox')" to="/inbox">
             <InboxIcon slot="icon" />
-            <NcCounterBubble v-show="inboxOpen > 0" slot="counter" type="highlighted">
-              <!-- {{ inboxOpen }} -->
+            <NcCounterBubble v-show="inboxCount > 0" slot="counter" type="highlighted">
+              {{ inboxCount }}
             </NcCounterBubble>
           </NcAppNavigationItem>
           <NcAppNavigationItem :name="t('aktenschrank', 'Archive')" to="/archive">
@@ -71,7 +71,7 @@ import TimelineIcon from 'vue-material-design-icons/TimelineClockOutline.vue'
 
 import SettingsDialog from './dialogs/SettingsDialog.vue'
 
-import { useSettingsStore } from './modules/store.js'
+import { useSettingsStore, useInboxStore } from './modules/store.js'
 import { mapActions, mapState } from 'pinia'
 
 /**
@@ -106,6 +106,7 @@ export default {
   },
   computed: {
     ...mapState(useSettingsStore, ['isSettingsLoading', 'isSettingsFailed', 'isCabinetReady']),
+    ...mapState(useInboxStore, ['inboxCount']),
   },
 
   async mounted() {
@@ -132,7 +133,9 @@ export default {
     async reloadAppSettings() {
       await this.getAppSettings()
       if (this.isCabinetReady) {
-        console.log('ok')
+
+        await this.getInbox(true)
+
       } else {
         await this.openSettings(false)
       }
@@ -156,6 +159,7 @@ export default {
     // #region Store
 
     ...mapActions(useSettingsStore, ['getAppSettings']),
+    ...mapActions(useInboxStore, ['getInbox']),
 
     // #endregion
 
@@ -164,6 +168,55 @@ export default {
 }
 </script>
 <style lang="scss">
+:root {
+
+  --aktn-app-header-padding: calc(2*var(--default-grid-baseline));
+  --aktn-app-header-height: calc(var(--default-clickable-area) + 2*var(--aktn-app-header-padding));
+
+}
+
+.aktn-app {
+
+  &--header {
+    height: var(--aktn-app-header-height);
+    padding: var(--app-navigation-padding);
+    border-bottom: 1px solid var(--color-border-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  &--toolbar {
+    min-height: var(--aktn-app-header-height);
+    padding: var(--aktn-app-header-padding);
+    background: var(--color-background-dark);
+    display: flex;
+    flex-direction: row;
+    gap: .3rem;
+    align-items: center;
+
+    & header {
+      font-weight: bold;
+    }
+
+    & .dynSpace {
+      flex: 1;
+      content: ' ';
+    }
+
+    & .loadingIcon {
+      width: var(--default-clickable-area);
+      height: var(--default-clickable-area);
+    }
+
+  }
+
+  &--content {
+    height: calc(100% - var(--aktn-app-header-height));
+    display: flex;
+  }
+
+}
 .aktn-list {
 
   &--ul {

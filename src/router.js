@@ -4,8 +4,9 @@ import Router from 'vue-router'
 import { generateUrl } from '@nextcloud/router'
 import queryString from 'query-string'
 
+import InboxRoute from './routes/Inbox.vue'
+
 // const Timeline = () => import('./routes/Timeline')
-// const Inbox = () => import('./routes/Inbox')
 // const Archive = () => import('./routes/Archive')
 // const Settings = () => import('./routes/Settings')
 
@@ -16,7 +17,10 @@ export default new Router({
   base: generateUrl('/apps/aktenschrank'),
   linkActiveClass: 'active',
   routes: [
-
+    {
+      path: '/inbox',
+      component: InboxRoute,
+    },
     // {
     //   path: '/',
     //   redirect: '/timeline',
@@ -24,10 +28,6 @@ export default new Router({
     // {
     //   path: '/timeline',
     //   component: Timeline,
-    // },
-    // {
-    //   path: '/inbox',
-    //   component: Inbox,
     // },
     // {
     //   path: '/archive',

@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 namespace OCA\Aktenschrank\Service;
 
+use OCA\Aktenschrank\Abstraction\InboxItem;
 use OCA\Aktenschrank\AppInfo\Application;
 use OCA\Aktenschrank\Db\Cabinet;
 use OCA\Aktenschrank\Db\CabinetMapper;
@@ -15,7 +16,6 @@ use OCA\Aktenschrank\Exceptions\ExResourceInUse;
 use OCA\Aktenschrank\Helpers\Validation;
 use OCP\IConfig;
 use OCP\IL10N;
-use OCP\IUser;
 use OCP\IUserSession;
 use OCP\Files\Folder;
 
@@ -29,7 +29,7 @@ class ApiService
   private IUserSession $userSession;
   private FileService $fileService;
   
-  public function __construct(
+  public function __construct (
 
     CabinetMapper $cabinetMapper,
 
@@ -656,6 +656,38 @@ class ApiService
   }
 
   #endregion
+
+  #endregion
+  #region Inbox
+
+  public const INBOX_ITEMS = "inboxItems";
+
+  /**
+   * This method get InboxEntries from cabinet inbox Folder.
+   *
+   * @return array Key/Value array of following format:
+   * {
+   *   @type array $INBOX_ITEMS Array with InboxItem.
+   * }
+   * 
+   * @throws ExBackend If groupfolder app isn't installed or Cabinet is invalid.
+   * @throws ExBadRequest If groupfolder id not found, groupfolder not accessible or folder not found.
+   * 
+   */
+  public function getInbox(): Array
+  {
+
+    // find all files inside inbox
+    $inboxNode = $this->getCabinetInboxFolder();
+    $allNodes = $this->fileService->getFolderAllFiles($inboxNode);
+
+    $inboxItems = array_map(function ($node) { return InboxItem::fromNode($node, $this->fileService); }, $allNodes);
+
+    return [
+      self::INBOX_ITEMS => $inboxItems
+    ];
+
+  }
 
   #endregion
 

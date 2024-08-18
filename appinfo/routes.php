@@ -35,6 +35,12 @@ return [
 
 		#endregion
 
+		#region Inbox
+
+		['name' => 'documents#getInbox', 'url' => '/api/inbox', 'verb' => 'GET'],
+
+		#endregion
+
 		#endregion
 
 

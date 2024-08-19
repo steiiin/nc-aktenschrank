@@ -321,7 +321,8 @@ export default {
 
       }
     },
-    updateOnVisibilityChange() {
+    async updateOnVisibilityChange(a) {
+      await new Promise(resolve => setTimeout(resolve, 500))
       if (!document.hidden) {
         this.updateInbox()
       }
